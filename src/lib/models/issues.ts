@@ -26,7 +26,13 @@ export function createIssue(data: CreateIssueData) {
     INSERT INTO issues (github_issue_id, issue_number, repo, title, body, status)
     VALUES (?, ?, ?, ?, ?, 'pending')
   `);
-  return stmt.run(data.githubIssueId, data.issueNumber, data.repo, data.title, data.body);
+  return stmt.run(
+    data.githubIssueId,
+    data.issueNumber,
+    data.repo,
+    data.title,
+    data.body,
+  );
 }
 
 export function getRunningIssues(): Issue[] {
@@ -36,19 +42,19 @@ export function getRunningIssues(): Issue[] {
 }
 
 export function setSessionId(issueId: number, sessionId: string) {
-  db.prepare("UPDATE issues SET devin_session_id = ?, status = 'running' WHERE id = ?").run(
-    sessionId,
-    issueId,
-  );
+  db.prepare(
+    "UPDATE issues SET devin_session_id = ?, status = 'running' WHERE id = ?",
+  ).run(sessionId, issueId);
 }
 
 export function markCompleted(issueId: number, prUrl: string) {
-  db.prepare("UPDATE issues SET status = 'completed', pr_url = ? WHERE id = ?").run(
-    prUrl,
-    issueId,
-  );
+  db.prepare(
+    "UPDATE issues SET status = 'completed', pr_url = ? WHERE id = ?",
+  ).run(prUrl, issueId);
 }
 
 export function getAllIssues(): Issue[] {
-  return db.prepare("SELECT * FROM issues ORDER BY created_at DESC").all() as Issue[];
+  return db
+    .prepare("SELECT * FROM issues ORDER BY created_at DESC")
+    .all() as Issue[];
 }

@@ -1,26 +1,90 @@
+import { type NextRequest } from "next/server";
+import crypto from "node:crypto";
 import { createIssue, setSessionId } from "@/lib/models/issues";
 import { createSession } from "@/lib/devin";
+import { logger } from "@/lib/logger";
 
-export async function POST(req: Request) {
-  const payload = await req.json();
+function verifySignature(
+  rawBody: string,
+  signature: string,
+  secret: string,
+): boolean {
+  const hmac = crypto.createHmac("sha256", secret);
+  hmac.update(rawBody);
+  const digest = `sha256=${hmac.digest("hex")}`;
+  try {
+    return crypto.timingSafeEqual(Buffer.from(digest), Buffer.from(signature));
+  } catch {
+    return false;
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const signature = req.headers.get("x-hub-signature-256") ?? "";
+  const event = req.headers.get("x-github-event");
+
+  if (!event || !signature) {
+    return new Response("missing headers", { status: 400 });
+  }
+
+  const rawBody = await req.text();
+
+  const isValid = verifySignature(
+    rawBody,
+    signature,
+    process.env.GITHUB_WEBHOOK_SECRET!,
+  );
+
+  if (!isValid) {
+    logger.warn({ context: "webhook" }, "Invalid signature");
+    return new Response("invalid signature", { status: 401 });
+  }
+
+  if (event !== "issues") {
+    return Response.json({ ok: true });
+  }
+
+  const payload = JSON.parse(rawBody);
 
   if (payload.action !== "opened") {
-    return Response.json({});
+    return Response.json({ ok: true });
   }
+
+  const repo = payload.repository?.full_name as string;
+  logger.info(
+    {
+      context: "webhook",
+      repo,
+      issueNumber: payload.issue.number,
+      title: payload.issue.title,
+    },
+    "Issue opened",
+  );
 
   const result = createIssue({
     githubIssueId: payload.issue.id,
     issueNumber: payload.issue.number,
-    repo: payload.repository.full_name,
+    repo,
     title: payload.issue.title,
     body: payload.issue.body ?? "",
   });
 
   const issueId = Number(result.lastInsertRowid);
+  logger.info(
+    { context: "webhook", issueId, title: payload.issue.title },
+    "Issue recorded",
+  );
 
-  const session = await createSession(payload.issue.title, payload.issue.body ?? "");
+  const session = await createSession(
+    payload.issue.title,
+    payload.issue.body ?? "",
+  );
 
   setSessionId(issueId, session.id);
+  logger.info(
+    { context: "webhook", issueId, sessionId: session.id },
+    "Session linked",
+  );
 
   return Response.json({ ok: true });
 }

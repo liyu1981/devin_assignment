@@ -1,6 +1,7 @@
 import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
+import { logger } from "@/lib/logger";
 
 const DB_PATH = path.join(process.cwd(), "var/app.db");
 const MIGRATIONS_DIR = path.join(process.cwd(), "migrations");
@@ -37,7 +38,7 @@ const migrate = db.transaction(() => {
     const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, file), "utf8");
     db.exec(sql);
     db.prepare("INSERT INTO _migrations (name) VALUES (?)").run(file);
-    console.log(`Applied migration: ${file}`);
+    logger.info({ context: "db", file }, "Applied migration");
   }
 });
 

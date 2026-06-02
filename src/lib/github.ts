@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+
 export async function commentOnIssue(
   repo: string,
   issueNumber: number,
@@ -5,7 +7,10 @@ export async function commentOnIssue(
 ): Promise<void> {
   const token = process.env.GITHUB_TOKEN;
   if (!token) {
-    console.warn("GITHUB_TOKEN not set; skipping comment");
+    logger.warn(
+      { context: "github" },
+      "GITHUB_TOKEN not set; skipping comment",
+    );
     return;
   }
 
@@ -23,6 +28,9 @@ export async function commentOnIssue(
   );
 
   if (!response.ok) {
-    console.error("Failed to comment on issue", await response.text());
+    logger.error(
+      { context: "github", repo, issueNumber, status: response.status },
+      "Failed to comment on issue",
+    );
   }
 }

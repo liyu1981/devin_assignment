@@ -29,11 +29,21 @@ export default function Home() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-200 dark:border-zinc-800">
-                  <th className="text-left py-3 px-4 font-medium text-zinc-500">Issue</th>
-                  <th className="text-left py-3 px-4 font-medium text-zinc-500">Repo</th>
-                  <th className="text-left py-3 px-4 font-medium text-zinc-500">Status</th>
-                  <th className="text-left py-3 px-4 font-medium text-zinc-500">PR</th>
-                  <th className="text-left py-3 px-4 font-medium text-zinc-500">Created</th>
+                  <th className="text-left py-3 px-4 font-medium text-zinc-500">
+                    Issue
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-zinc-500">
+                    Repo
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-zinc-500">
+                    Status
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-zinc-500">
+                    PR
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-zinc-500">
+                    Created
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -52,7 +62,9 @@ export default function Home() {
                         #{issue.issue_number} {issue.title}
                       </a>
                     </td>
-                    <td className="py-3 px-4 text-zinc-600 dark:text-zinc-400">{issue.repo}</td>
+                    <td className="py-3 px-4 text-zinc-600 dark:text-zinc-400">
+                      {issue.repo}
+                    </td>
                     <td className="py-3 px-4">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
