@@ -1,7 +1,6 @@
 import { type NextRequest } from "next/server";
 import crypto from "node:crypto";
-import { createIssue, setSessionId } from "@/lib/models/issues";
-import { createSession } from "@/lib/devin";
+import { createIssue } from "@/lib/models/issues";
 import { logger } from "@/lib/logger";
 
 function verifySignature(
@@ -68,23 +67,6 @@ export async function POST(req: NextRequest) {
     title: payload.issue.title,
     body: payload.issue.body ?? "",
   });
-
-  const issueId = Number(result.lastInsertRowid);
-  logger.info(
-    { context: "webhook", issueId, title: payload.issue.title },
-    "Issue recorded",
-  );
-
-  const session = await createSession(
-    payload.issue.title,
-    payload.issue.body ?? "",
-  );
-
-  setSessionId(issueId, session.id);
-  logger.info(
-    { context: "webhook", issueId, sessionId: session.id },
-    "Session linked",
-  );
 
   return Response.json({ ok: true });
 }

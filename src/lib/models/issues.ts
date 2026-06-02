@@ -7,7 +7,7 @@ export type Issue = {
   repo: string;
   title: string;
   body: string | null;
-  status: "pending" | "running" | "completed";
+  status: "pending" | "running" | "completed" | "failed";
   devin_session_id: string | null;
   pr_url: string | null;
   created_at: string;
@@ -51,6 +51,10 @@ export function markCompleted(issueId: number, prUrl: string) {
   db.prepare(
     "UPDATE issues SET status = 'completed', pr_url = ? WHERE id = ?",
   ).run(prUrl, issueId);
+}
+
+export function markFailed(issueId: number) {
+  db.prepare("UPDATE issues SET status = 'failed' WHERE id = ?").run(issueId);
 }
 
 export function getAllIssues(): Issue[] {

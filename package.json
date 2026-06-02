@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "worker": "tsx src/worker.ts",
+    "dev:all": "concurrently -n server,worker1,worker2 \"next dev\" \"tsx src/worker.ts\" \"tsx src/worker.ts\"",
     "build": "next build",
     "start": "next start",
     "lint": "biome check",
@@ -23,7 +25,9 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^10.0.3",
     "tailwindcss": "^4",
+    "tsx": "^4.22.4",
     "typescript": "^5"
   }
 }

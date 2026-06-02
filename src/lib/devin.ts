@@ -5,8 +5,11 @@ export type DevinSession = {
   url: string;
 };
 
+const FAILED_STATUSES = new Set(["error", "failed", "crashed", "stopped"]);
+
 export type DevinStatus = {
   completed: boolean;
+  failed: boolean;
   prUrl: string | null;
 };
 
@@ -86,6 +89,7 @@ export async function getSessionStatus(
 
   return {
     completed: data.status === "completed",
+    failed: FAILED_STATUSES.has(data.status),
     prUrl: data.pr_url ?? null,
   };
 }
