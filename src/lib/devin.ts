@@ -5,26 +5,42 @@ export type DevinSession = {
   url: string;
 };
 
-const FAILED_STATUSES = new Set(["error", "failed", "crashed", "stopped"]);
-
 export type DevinStatus = {
   completed: boolean;
   failed: boolean;
   prUrl: string | null;
 };
 
+const FAILED_STATUSES = new Set(["error", "failed", "crashed", "stopped"]);
+
+function baseUrl() {
+  if (process.env.DEVIN_MOCK === "true") {
+    const port = process.env.DEVIN_MOCK_PORT || "4000";
+    return `http://localhost:${port}`;
+  }
+  return "https://api.devin.ai";
+}
+
+function getApiKeyOrThrow() {
+  const key = process.env.DEVIN_API_KEY;
+  if (!key && process.env.DEVIN_MOCK !== "true") {
+    throw new Error(
+      "DEVIN_API_KEY is required when using the real Devin API. " +
+        "Set DEVIN_MOCK=true to use the mock server and skip this check.",
+    );
+  }
+  return key || "";
+}
+
 export async function createSession(
   issueTitle: string,
   issueBody: string,
 ): Promise<DevinSession> {
-  const apiKey = process.env.DEVIN_API_KEY;
-  if (!apiKey) {
-    throw new Error("DEVIN_API_KEY environment variable is not set");
-  }
+  const apiKey = getApiKeyOrThrow();
 
   logger.info({ context: "devin", title: issueTitle }, "Creating session");
 
-  const response = await fetch("https://api.devin.ai/v1/sessions", {
+  const response = await fetch(`${baseUrl()}/v1/sessions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -53,19 +69,13 @@ export async function createSession(
 export async function getSessionStatus(
   sessionId: string,
 ): Promise<DevinStatus> {
-  const apiKey = process.env.DEVIN_API_KEY;
-  if (!apiKey) {
-    throw new Error("DEVIN_API_KEY environment variable is not set");
-  }
+  const apiKey = getApiKeyOrThrow();
 
-  const response = await fetch(
-    `https://api.devin.ai/v1/sessions/${sessionId}`,
-    {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-      },
+  const response = await fetch(`${baseUrl()}/v1/sessions/${sessionId}`, {
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
     },
-  );
+  });
 
   if (!response.ok) {
     logger.error(

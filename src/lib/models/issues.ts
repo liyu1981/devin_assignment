@@ -10,6 +10,7 @@ export type Issue = {
   status: "pending" | "running" | "completed" | "failed";
   devin_session_id: string | null;
   pr_url: string | null;
+  claimed_by: string | null;
   created_at: string;
 };
 
@@ -35,16 +36,37 @@ export function createIssue(data: CreateIssueData) {
   );
 }
 
+export function claimPendingIssue(workerId: string): Issue | null {
+  const issue = db
+    .prepare(
+      "SELECT * FROM issues WHERE status = 'pending' ORDER BY id ASC LIMIT 1",
+    )
+    .get() as Issue | undefined;
+
+  if (!issue) return null;
+
+  const result = db
+    .prepare(
+      "UPDATE issues SET status = 'running', claimed_by = ? WHERE id = ? AND status = 'pending'",
+    )
+    .run(workerId, issue.id);
+
+  if (result.changes === 0) return null;
+
+  return { ...issue, status: "running" as const, claimed_by: workerId };
+}
+
 export function getRunningIssues(): Issue[] {
   return db
-    .prepare("SELECT * FROM issues WHERE status IN ('pending', 'running')")
+    .prepare("SELECT * FROM issues WHERE status = 'running'")
     .all() as Issue[];
 }
 
 export function setSessionId(issueId: number, sessionId: string) {
-  db.prepare(
-    "UPDATE issues SET devin_session_id = ?, status = 'running' WHERE id = ?",
-  ).run(sessionId, issueId);
+  db.prepare("UPDATE issues SET devin_session_id = ? WHERE id = ?").run(
+    sessionId,
+    issueId,
+  );
 }
 
 export function markCompleted(issueId: number, prUrl: string) {

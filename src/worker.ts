@@ -1,45 +1,65 @@
-import {
-  getRunningIssues,
-  setSessionId,
-  markCompleted,
-  markFailed,
-} from "@/lib/models/issues";
+import "dotenv/config";
+import os from "node:os";
 import { createSession, getSessionStatus } from "@/lib/devin";
 import { commentOnIssue } from "@/lib/github";
 import { logger } from "@/lib/logger";
+import {
+  claimPendingIssue,
+  getRunningIssues,
+  markCompleted,
+  markFailed,
+  setSessionId,
+} from "@/lib/models/issues";
 
+const WORKER_ID = `${os.hostname()}:${process.pid}`;
 const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS) || 60_000;
 
 async function tick() {
-  const issues = getRunningIssues();
-  if (issues.length === 0) return;
+  // Phase 1: atomically claim and start sessions for pending issues
+  while (true) {
+    const issue = claimPendingIssue(WORKER_ID);
+    if (!issue) break;
 
-  logger.info({ context: "worker", count: issues.length }, "Processing issues");
-
-  for (const issue of issues) {
-    if (!issue.devin_session_id) {
-      try {
-        const session = await createSession(issue.title, issue.body ?? "");
-        setSessionId(issue.id, session.id);
-        logger.info(
-          { context: "worker", issueId: issue.id, sessionId: session.id },
-          "Session started",
-        );
-      } catch (error) {
-        logger.error(
-          { context: "worker", issueId: issue.id, error: String(error) },
-          "Failed to create session",
-        );
-      }
-      continue;
+    try {
+      const session = await createSession(issue.title, issue.body ?? "");
+      setSessionId(issue.id, session.id);
+      logger.info(
+        {
+          context: "worker",
+          worker: WORKER_ID,
+          issueId: issue.id,
+          sessionId: session.id,
+        },
+        "Session started",
+      );
+    } catch (error) {
+      logger.error(
+        {
+          context: "worker",
+          worker: WORKER_ID,
+          issueId: issue.id,
+          error: String(error),
+        },
+        "Failed to create session",
+      );
     }
+  }
+
+  // Phase 2: poll status for already-running issues
+  const running = getRunningIssues();
+
+  for (const issue of running) {
+    if (!issue.devin_session_id) continue;
 
     try {
       const result = await getSessionStatus(issue.devin_session_id);
 
       if (result.failed) {
         markFailed(issue.id);
-        logger.info({ context: "worker", issueId: issue.id }, "Issue failed");
+        logger.info(
+          { context: "worker", worker: WORKER_ID, issueId: issue.id },
+          "Issue failed",
+        );
       } else if (result.completed) {
         if (result.prUrl) {
           await commentOnIssue(
@@ -50,7 +70,12 @@ async function tick() {
         }
         markCompleted(issue.id, result.prUrl ?? "");
         logger.info(
-          { context: "worker", issueId: issue.id, prUrl: result.prUrl },
+          {
+            context: "worker",
+            worker: WORKER_ID,
+            issueId: issue.id,
+            prUrl: result.prUrl,
+          },
           "Issue completed",
         );
       }
@@ -58,6 +83,7 @@ async function tick() {
       logger.error(
         {
           context: "worker",
+          worker: WORKER_ID,
           issueId: issue.id,
           sessionId: issue.devin_session_id,
           error: String(error),
@@ -69,18 +95,21 @@ async function tick() {
 }
 
 logger.info(
-  { context: "worker", interval: POLL_INTERVAL_MS },
+  { context: "worker", worker: WORKER_ID, interval: POLL_INTERVAL_MS },
   "Worker started",
 );
 
 tick().catch((err) =>
   logger.error(
-    { context: "worker", error: String(err) },
+    { context: "worker", worker: WORKER_ID, error: String(err) },
     "Initial tick failed",
   ),
 );
 setInterval(() => {
   tick().catch((err) =>
-    logger.error({ context: "worker", error: String(err) }, "Tick failed"),
+    logger.error(
+      { context: "worker", worker: WORKER_ID, error: String(err) },
+      "Tick failed",
+    ),
   );
 }, POLL_INTERVAL_MS);

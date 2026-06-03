@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Issue } from "@/lib/models/issues";
 
 function statusBadge(status: Issue["status"]) {
@@ -101,6 +101,11 @@ function DetailPanel({
           </Section>
 
           <Section title="Devin Session">
+            <DetailRow label="Claimed By">
+              {issue.claimed_by ?? (
+                <span className="text-zinc-400 italic">—</span>
+              )}
+            </DetailRow>
             <DetailRow label="Session ID">
               {issue.devin_session_id ?? (
                 <span className="text-zinc-400 italic">Not started</span>
@@ -151,8 +156,33 @@ function DetailPanel({
   );
 }
 
-export default function IssueTable({ issues }: { issues: Issue[] }) {
+export default function IssueTable({
+  issues: initialIssues,
+}: {
+  issues: Issue[];
+}) {
+  const [issues, setIssues] = useState(initialIssues);
   const [selected, setSelected] = useState<Issue | null>(null);
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/jobs/poll");
+        const data = await res.json();
+        if (data.issues) {
+          setIssues(data.issues);
+          setSelected((prev) => {
+            if (!prev) return prev;
+            const updated = data.issues.find((i: Issue) => i.id === prev.id);
+            return updated ?? prev;
+          });
+        }
+      } catch {
+        // Polling errors are ignored
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   if (issues.length === 0) {
     return (

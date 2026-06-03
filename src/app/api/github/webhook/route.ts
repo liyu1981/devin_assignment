@@ -28,15 +28,17 @@ export async function POST(req: NextRequest) {
 
   const rawBody = await req.text();
 
-  const isValid = verifySignature(
-    rawBody,
-    signature,
-    process.env.GITHUB_WEBHOOK_SECRET!,
-  );
+  if (process.env.GITHUB_MOCK !== "true") {
+    const isValid = verifySignature(
+      rawBody,
+      signature,
+      process.env.GITHUB_WEBHOOK_SECRET!,
+    );
 
-  if (!isValid) {
-    logger.warn({ context: "webhook" }, "Invalid signature");
-    return new Response("invalid signature", { status: 401 });
+    if (!isValid) {
+      logger.warn({ context: "webhook" }, "Invalid signature");
+      return new Response("invalid signature", { status: 401 });
+    }
   }
 
   if (event !== "issues") {
