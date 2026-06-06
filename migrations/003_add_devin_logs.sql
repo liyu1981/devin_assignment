@@ -1,0 +1,1 @@
+ALTER TABLE issues ADD COLUMN devin_logs TEXT NOT NULL DEFAULT '[]';

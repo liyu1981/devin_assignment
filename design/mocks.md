@@ -6,27 +6,27 @@ started as part of `dev:all`.
 
 ## Mock Devin Server (`src/mock-devin-server.ts`)
 
-Replaces the real Devin API (`api.devin.ai`) locally.  
-The client (`src/lib/devin.ts`) uses `DEVIN_API_BASE_URL` to switch endpoints.
+Replaces the real Devin API v3 (`api.devin.ai`) locally.  
+The client (`src/lib/devin.ts`) routes through `DEVIN_MOCK` env var to switch endpoints.
 
 | Endpoint | Behavior |
 |----------|----------|
-| `POST /v1/sessions` | Returns `{ id: "mock-session-<uuid>", url: "..." }` immediately |
-| `GET /v1/sessions/:id` | Returns status based on elapsed time since creation |
+| `POST /v3/organizations/{org_id}/sessions` | Returns full `SessionResponse` with `session_id`, `url`, `status: "running"` |
+| `GET /v3/organizations/{org_id}/sessions/{devin_id}` | Returns full `SessionResponse` — status depends on elapsed time |
 
-### State machine per session
+### State machine per session (v3 statuses)
 
-- Before `DEVIN_MOCK_DELAY_MS`: `{ status: "running" }`
-- After delay + `DEVIN_MOCK_FAIL=true`: `{ status: "failed" }`
-- After delay + normal: `{ status: "completed", pr_url: "https://github.com/..." }`
+- Before `DEVIN_MOCK_DELAY_MS`: `{ status: "running", status_detail: "working" }`
+- After delay + `DEVIN_MOCK_FAIL=true`: `{ status: "error", status_detail: "error" }`
+- After delay + normal: `{ status: "exit", status_detail: "finished", pull_requests: [{ pr_url: "...", pr_state: "open" }] }`
 
 ### Config
 
 ```env
-DEVIN_API_BASE_URL=http://localhost:4000
 DEVIN_MOCK_PORT=4000
 DEVIN_MOCK_DELAY_MS=60000
 DEVIN_MOCK_FAIL=false
+DEVIN_ORG_ID=org-abc123
 ```
 
 ---
