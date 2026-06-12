@@ -1,0 +1,370 @@
+setting up the demo against **real GitHub + real Devin**, using your `.env` configuration.
+
+# Prerequisites
+
+You'll need:
+
+* A GitHub account
+* A Devin account with API access
+* Node.js installed
+* ngrok installed
+* A repository to test with (your fork of Superset or another repo)
+
+---
+
+# Step 0: Fork a Repository
+
+Fork a repo you'll allow Devin to work on.
+
+For example:
+
+* [Apache Superset GitHub Repository](https://github.com/apache/superset?utm_source=chatgpt.com)
+
+Click **Fork** and create:
+
+```text
+your-github-name/superset
+```
+
+You should have write access to the fork.
+
+---
+
+# Step 1: Create a GitHub App
+
+Open:
+
+[GitHub Apps Settings](https://github.com/settings/apps?utm_source=chatgpt.com)
+
+Click **New GitHub App**.
+
+## Basic Settings
+
+| Field          | Value                                          |
+| -------------- | ---------------------------------------------- |
+| App Name       | devin-demo                                     |
+| Homepage URL   | [http://localhost:3000](http://localhost:3000) |
+| Webhook URL    | temporary placeholder                          |
+| Webhook Secret | generate a random string                       |
+
+Example webhook secret:
+
+```text
+devin-demo-secret-123
+```
+
+Save this value.
+
+---
+
+## Permissions
+
+Repository Permissions:
+
+| Permission    | Access       |
+| ------------- | ------------ |
+| Issues        | Read & Write |
+| Pull Requests | Read & Write |
+| Contents      | Read & Write |
+| Metadata      | Read         |
+
+---
+
+## Subscribe to Events
+
+Enable:
+
+```text
+Issues
+Issue comments
+Pull requests
+```
+
+For the first test, **Issues** is the important one.
+
+---
+
+## Install App
+
+After creation:
+
+```text
+Install App
+→ Only selected repositories
+→ select your fork
+```
+
+Example:
+
+```text
+yu-li/superset
+```
+
+---
+
+# Step 2: Generate GitHub Webhook Secret
+
+You can use:
+
+```bash
+openssl rand -hex 32
+```
+
+Example output:
+
+```text
+a7c7c9a9d5ef5c7f0f4c87c7d91c5e65d2f95c47a2f95f31f1b5c1f5e1f9d7ab
+```
+
+Put this into:
+
+```env
+GITHUB_WEBHOOK_SECRET=a7c7c9a9d5ef5c7f0f4c87c7d91c5e65d2f95c47a2f95f31f1b5c1f5e1f9d7ab
+```
+
+---
+
+# Step 3: Get Devin Credentials
+
+Open:
+
+[Devin Settings API Page](https://app.devin.ai/settings/api?utm_source=chatgpt.com)
+
+Copy:
+
+### API Key
+
+```env
+DEVIN_API_KEY=your_api_key_here
+```
+
+### Organization ID
+
+In Devin, locate your organization ID.
+
+```env
+DEVIN_ORG_ID=org_xxxxxxxxx
+```
+
+---
+
+# Step 4: Configure .env
+
+Example:
+
+```env
+GITHUB_WEBHOOK_SECRET=a7c7...
+
+DEVIN_API_KEY=dvn_xxxxx
+DEVIN_ORG_ID=org_xxxxx
+
+DEVIN_MOCK=false
+GITHUB_MOCK=false
+
+POLL_INTERVAL_MS=5000
+
+LOG_LEVEL=debug
+```
+
+For real GitHub + real Devin:
+
+```env
+DEVIN_MOCK=false
+GITHUB_MOCK=false
+```
+
+---
+
+# Step 5: Start the Next.js App
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run:
+
+```bash
+npm run dev
+```
+
+Expected:
+
+```text
+http://localhost:3000
+```
+
+---
+
+# Step 6: Expose Local Server with ngrok
+
+Install ngrok:
+
+[ngrok Download Page](https://ngrok.com/download?utm_source=chatgpt.com)
+
+Run:
+
+```bash
+ngrok http 3000
+```
+
+Example output:
+
+```text
+Forwarding
+
+https://abc123.ngrok-free.app
+    ->
+http://localhost:3000
+```
+
+Copy:
+
+```text
+https://abc123.ngrok-free.app
+```
+
+---
+
+# Step 7: Update GitHub App Webhook URL
+
+Back in GitHub App settings.
+
+Webhook URL:
+
+```text
+https://abc123.ngrok-free.app/api/github/webhook
+```
+
+Save.
+
+---
+
+# Step 8: Verify Webhook Delivery
+
+In GitHub App:
+
+```text
+Advanced
+→ Recent Deliveries
+```
+
+Keep this page open.
+
+It lets you inspect webhook failures.
+
+---
+
+# Step 9: Create a Test Issue
+
+Go to your fork.
+
+Example:
+
+```text
+Title:
+Fix typo in README
+
+Body:
+The installation section contains a typo.
+Please update it.
+```
+
+Create the issue.
+
+---
+
+# Step 10: Confirm Webhook Arrives
+
+In your Next.js terminal you should see something like:
+
+```text
+Received issue opened event
+
+repo=yu-li/superset
+issue=123
+title=Fix typo in README
+```
+
+If not:
+
+Check:
+
+* ngrok running?
+* webhook URL correct?
+* GitHub App installed?
+* repo selected?
+* webhook secret matches?
+
+---
+
+# Step 11: Confirm Devin Session Creation
+
+Your app should then call Devin.
+
+Expected logs:
+
+```text
+Creating Devin session...
+
+Session:
+ses_abc123
+```
+
+Check in:
+
+[Devin Dashboard](https://app.devin.ai?utm_source=chatgpt.com)
+
+You should see a new session.
+
+---
+
+# Step 12: Monitor Session Progress
+
+Worker loop:
+
+```env
+POLL_INTERVAL_MS=5000
+```
+
+means:
+
+```text
+every 5 seconds
+```
+
+your app checks:
+
+```text
+pending
+running
+completed
+failed
+```
+
+---
+
+# Step 13: Verify PR Creation
+
+When Devin completes:
+
+```text
+Issue
+  ↓
+Devin Session
+  ↓
+Branch
+  ↓
+Pull Request
+```
+
+You should see a PR in your fork.
+
+Example:
+
+```text
+yu-li/superset/pull/1
+```
+
+and your issue gets a comment linking to the PR.

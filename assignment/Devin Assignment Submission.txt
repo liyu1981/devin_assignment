@@ -1,0 +1,30 @@
+Devin Assignment Submission 
+
+by liyu1981@gmail.com
+
+============
+
+
+* Where is the code?
+
+The code is at here: https://github.com/liyu1981/devin_assignment
+
+* How to run the code?
+
+For local development can refer to the Readme.md file in the code repo.
+
+For running in mock server mode, please following the instructions in Readme.md (turn on DEVIN_MOCK=true and GITHUB_MOCK=true).
+
+For running it with real Devin and GitHub, it requires
+  0. create GitHub app, fork your superset repo (or any others), and install your app to your repo
+  1. configure .env with correct GitHub webhook secret and Devin service user token
+  2. use ngrok (or other tool) to expose the dev server online and configure GitHub webhook to callback to it
+  3. then go to your GitHub and create issue
+(There is a separate file with tutorial on setting up it)
+
+
+* Video: Devin Assignment_small.mp4 is the demo video of this project. There is demo of using it with liyu1981/superset repo.
+
+* https://github.com/liyu1981/superset is the my forked apache superset repo and in PRs you can find Devin submitted PRs.
+
+* https://github.com/liyu1981/superset/pull/16 is a sample PR created by Devin agent triggered by this demo. 
